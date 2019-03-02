@@ -17,7 +17,8 @@ class RecipesSpider(scrapy.Spider):
             '//div[@class="browse-recipe-content"]'
             '/a[@class="browse-recipe-name"]/@href')
         ).extract()
-        category_name = response.xpath('//h2[@class="category-name"]/text()').re(r'(\w+)')
+        category_name = response.xpath(
+            '//h2[@class="category-name"]/text()').re(r'(\w+)')
         for url in urls:
             yield response.follow(url, callback=self.parse_receipes, meta={'category': category_name})
 
@@ -29,14 +30,24 @@ class RecipesSpider(scrapy.Spider):
             yield response.follow(next_page, callback=self.parse_category)
 
     def parse_receipes(self, response):
-        category = response.meta.get('category')
         title = response.css('title::text').re(r'(.*) by')
+        author = response.xpath(
+            '//div[@class="author-name"]/a[@class="author-name-link"]/text()').get()
+        images = response.css('img.main-pic::attr(src)').extract()
+        category = response.meta.get('category')
+        description = ''.join(response.xpath(
+            '//div[@class="header-row description"]/p/text()').getall())
         ingredients = list(
             set(response.css('div.ingredient-name::text').getall()))
-        images = response.css('img.main-pic::attr(src)').extract()
+        steps = ''.join(response.xpath(
+            '//li[@class="step"]/div/div/text()').getall())
+
         yield {
             'Tilte': title,
+            'Author': author,
+            'images-url': images,
             'Category': category,
+            'Description': description,
             'Ingredients': ingredients,
-            'images-url': images
+            'Steps': steps,
         }
